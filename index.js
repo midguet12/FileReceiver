@@ -1,28 +1,32 @@
-const { ifError } = require('assert');
-const express = require('express')
-const app = express()
-const port = 3005
-const fileUpload = require('express-fileupload')
-const router = express.Router();
+const express = require('express');
+const app = express();
+const port = 3005;
 const multer = require('multer');
+const ffmpegStatic = require("ffmpeg-static");
+const ffmpeg = require("fluent-ffmpeg");
+const axios = require("axios");
+const { text } = require('body-parser');
 
-const fs = require('fs');
+ffmpeg.setFfmpegPath(ffmpegStatic);
 
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, GET, PUT, PATCH");
     res.setHeader("Access-Control-Allow-Headers",  "Origin, X-Requested-With, Content-Type, Accept, Authorization");
     res.setHeader("Content-Type", "application/json");
-    next(); 
+    next();
 })
+
+var fileName = '';
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './')
+        cb(null, './audios')
     },
     filename: function (req, file, cb) {
-        //const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, "1.wav")
+        const currentDate = new Date(Date.now());
+        fileName = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDay()}-${currentDate.getHours()}-${currentDate.getMinutes()}-${currentDate.getSeconds()}-${currentDate.getMilliseconds()}.mp`;
+        cb(null, fileName)
     }
 });
 
@@ -35,7 +39,7 @@ const cargadorMulter = upload.fields([
     {name: 'recording', maxCount: 1}
 ]);
 
-app.post('/audio', (req, res) =>{
+app.post('/audio', async (req, res) =>{
     cargadorMulter(req, res, function (err){
         if (err instanceof multer.MulterError) {
             if (err.code === "LIMIT_FILE_SIZE") {
@@ -43,46 +47,29 @@ app.post('/audio', (req, res) =>{
             }
             console.log(err);
         } else{
-            console.log("Archivo subido")
+            const currentDate = new Date(Date.now());
+            //console.log("Archivo subido a las " + currentDate.getHours() +":" + currentDate.getMinutes());
+            console.log(`Archivo ${fileName} subido a las ${currentDate.getHours()}:${currentDate.getMinutes()}`);
+            
+            const processVoiceRequest = new FormData();
+            processVoiceRequest.append('path_audio_voice', fileName)
+            const textAudio = axios.post('http://192.168.0.205:7004/process_voice', processVoiceRequest);
+            
+            const textAudioRequest = new FormData();
+            textAudioRequest.append('text', textAudio.data.path_audio_voice);
+            const responseText = axios.post('http://192.168.0.205:7000/constanza/listens', textAudioRequest);
+
+            const answerAudioPathRequest = new FormData();
+            answerAudioPathRequest.append('text', responseText.data.text)
+            const answerAudioPath = axios.post('http://192.168.0.205:7004/voice_response',answerAudioPathRequest)
+
             res.status(201).json({
-                mensaje: "subido"
+                path: answerAudioPath
             });
         }
     });
+
 })
-
-
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-});
-
-// app.use(fileUpload({
-//     // Configure file uploads with maximum file size 10MB
-//     limits: { fileSize: 1000 * 1024 * 1024 },
-  
-//     // Temporarily store uploaded files to disk, rather than buffering in memory
-//     useTempFiles : true,
-//     tempFileDir : '/tmp/'
-//   }));
-  
-//   app.post('/audio', async function(req, res, next) {
-//     // Was a file submitted?
-//     if (!req.files || !req.files.recording) {
-//       return res.status(422).send('No files were uploaded');
-//     }
-  
-//     const uploadedFile = req.files.recording;
-  
-//     // Print information about the file to the console
-//     console.log(`File Name: ${uploadedFile.name}`);
-//     console.log(`File Size: ${uploadedFile.size}`);
-//     console.log(`File MD5 Hash: ${uploadedFile.md5}`);
-//     console.log(`File Mime Type: ${uploadedFile.mimetype}`);
-  
-
-
-// });
 
 
 app.listen(port, () => {
