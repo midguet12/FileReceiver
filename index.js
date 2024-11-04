@@ -71,6 +71,11 @@ app.post('/audio', async (req, res) =>{
 
 })
 
+app.post('/hellorworld', (req, res) =>{
+    res.status(201).json({
+        message: "Hola como estas"
+    })
+})
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
