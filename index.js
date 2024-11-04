@@ -71,7 +71,7 @@ app.post('/audio', async (req, res) =>{
 
 })
 
-app.post('/hellorworld', (req, res) =>{
+app.post('/helloworld', (req, res) =>{
     res.status(201).json({
         message: "Hola como estas"
     })
