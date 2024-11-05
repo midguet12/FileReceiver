@@ -2,12 +2,7 @@ const express = require('express');
 const app = express();
 const port = 3005;
 const multer = require('multer');
-const ffmpegStatic = require("ffmpeg-static");
-const ffmpeg = require("fluent-ffmpeg");
 const axios = require("axios");
-const { text } = require('body-parser');
-
-ffmpeg.setFfmpegPath(ffmpegStatic);
 
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -25,7 +20,7 @@ const storage = multer.diskStorage({
     },
     filename: function (req, file, cb) {
         const currentDate = new Date(Date.now());
-        fileName = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDay()}-${currentDate.getHours()}-${currentDate.getMinutes()}-${currentDate.getSeconds()}-${currentDate.getMilliseconds()}.mp`;
+        fileName = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDay()}-${currentDate.getHours()}-${currentDate.getMinutes()}-${currentDate.getSeconds()}-${currentDate.getMilliseconds()}.mp3`;
         cb(null, fileName)
     }
 });
@@ -40,31 +35,36 @@ const cargadorMulter = upload.fields([
 ]);
 
 app.post('/audio', async (req, res) =>{
-    cargadorMulter(req, res, function (err){
+    cargadorMulter(req, res, async function (err){
         if (err instanceof multer.MulterError) {
             if (err.code === "LIMIT_FILE_SIZE") {
                 res.status(400).json({error: "Archivo demasiado grande, el limite es 5MB"})
             }
             console.log(err);
         } else{
+            const server = 'localhost'
             const currentDate = new Date(Date.now());
             //console.log("Archivo subido a las " + currentDate.getHours() +":" + currentDate.getMinutes());
             console.log(`Archivo ${fileName} subido a las ${currentDate.getHours()}:${currentDate.getMinutes()}`);
-            
-            const processVoiceRequest = new FormData();
-            processVoiceRequest.append('path_audio_voice', fileName)
-            const textAudio = axios.post('http://192.168.0.205:7004/process_voice', processVoiceRequest);
-            
-            const textAudioRequest = new FormData();
-            textAudioRequest.append('text', textAudio.data.path_audio_voice);
-            const responseText = axios.post('http://192.168.0.205:7000/constanza/listens', textAudioRequest);
 
-            const answerAudioPathRequest = new FormData();
-            answerAudioPathRequest.append('text', responseText.data.text)
-            const answerAudioPath = axios.post('http://192.168.0.205:7004/voice_response',answerAudioPathRequest)
+            const requestWithAudioPath = {
+                path_audio_voice: fileName
+            }
+            const textFromAudio = await axios.post(`http://192.168.0.205:7004/process_voice`, requestWithAudioPath);
+
+            const textQuestion = {
+                text: textFromAudio.data.text
+            }
+            const answerText = await axios.post(`http://192.168.0.205:7000/constanza/listens`, textQuestion);
+        
+            const audioPathRequest = {
+                text: answerText.data.result
+            }
+            const responseAudioPathRequest = await axios.post(`http://192.168.0.205:7004/voice_response`, audioPathRequest);
+            //console.log(responseAudioPathRequest.data.result)
 
             res.status(201).json({
-                path: answerAudioPath
+                path: responseAudioPathRequest.data.result
             });
         }
     });
