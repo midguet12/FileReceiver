@@ -3,6 +3,7 @@ const app = express();
 const port = 3005;
 const multer = require('multer');
 const axios = require("axios");
+const path = require('path');
 
 app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -16,7 +17,7 @@ var fileName = '';
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './audios')
+        cb(null, './audios/user')
     },
     filename: function (req, file, cb) {
         const currentDate = new Date(Date.now());
@@ -38,34 +39,41 @@ app.post('/audio', async (req, res) =>{
     cargadorMulter(req, res, async function (err){
         if (err instanceof multer.MulterError) {
             if (err.code === "LIMIT_FILE_SIZE") {
-                res.status(400).json({error: "Archivo demasiado grande, el limite es 5MB"})
+                res.status(400).json({error: "Archivo demasiado grande, el limite es 50MB"})
             }
             console.log(err);
         } else{
-            const server = 'localhost'
             const currentDate = new Date(Date.now());
-            //console.log("Archivo subido a las " + currentDate.getHours() +":" + currentDate.getMinutes());
             console.log(`Archivo ${fileName} subido a las ${currentDate.getHours()}:${currentDate.getMinutes()}`);
 
             const requestWithAudioPath = {
                 path_audio_voice: fileName
             }
-            const textFromAudio = await axios.post(`http://192.168.0.205:7004/process_voice`, requestWithAudioPath);
+            const textFromAudio = await axios.post(`http://localhost:4000/process_voice`, requestWithAudioPath);
 
             const textQuestion = {
                 text: textFromAudio.data.text
             }
-            const answerText = await axios.post(`http://192.168.0.205:7000/constanza/listens`, textQuestion);
+            const answerText = await axios.post(`http://localhost:4000/constanza/listens`, textQuestion);
         
             const audioPathRequest = {
                 text: answerText.data.result
             }
-            const responseAudioPathRequest = await axios.post(`http://192.168.0.205:7004/voice_response`, audioPathRequest);
-            //console.log(responseAudioPathRequest.data.result)
-
-            res.status(201).json({
-                path: responseAudioPathRequest.data.result
+            const responseAudioPathRequest = await axios.post(`http://localhost:4000/voice_response`, audioPathRequest);
+            
+            const temporalAudio = responseAudioPathRequest;
+            const options = {
+                root: path.join(__dirname)
+            }
+            const fileForSending = `./audios/server/${temporalAudio}`
+            res.sendFile(fileForSending, options, function(err){
+                if (err) {
+                    console.log(err)
+                } else{
+                    console.log(`Archivo ${fileForSending} enviado.`)
+                }
             });
+
         }
     });
 
