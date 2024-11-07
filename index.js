@@ -49,17 +49,17 @@ app.post('/audio', async (req, res) =>{
             const requestWithAudioPath = {
                 path_audio_voice: fileName
             }
-            const textFromAudio = await axios.post(`http://localhost:4000/process_voice`, requestWithAudioPath);
+            const textFromAudio = await axios.post(`http://localhost:7004/process_voice`, requestWithAudioPath);
 
             const textQuestion = {
                 text: textFromAudio.data.text
             }
-            const answerText = await axios.post(`http://localhost:4000/constanza/listens`, textQuestion);
+            const answerText = await axios.post(`http://localhost:7000/constanza/listens`, textQuestion);
         
             const audioPathRequest = {
                 text: answerText.data.result
             }
-            const responseAudioPathRequest = await axios.post(`http://localhost:4000/voice_response`, audioPathRequest);
+            const responseAudioPathRequest = await axios.post(`http://localhost:7004/voice_response`, audioPathRequest);
             
             const temporalAudio = responseAudioPathRequest;
             const options = {
