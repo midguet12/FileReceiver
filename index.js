@@ -48,7 +48,7 @@ app.post('/audio', async (req, res) =>{
             console.log(`Archivo ${fileName} subido a las ${currentDate.getHours()}:${currentDate.getMinutes()}`);
 
             const requestWithAudioPath = {
-                path_audio_voice: fileName
+                path_audio_voice: `/ecoterra_files/audio/user/${fileName}`
             }
             const textFromAudio = await axios.post(`http://${server}:7004/process_voice`, requestWithAudioPath);
 
