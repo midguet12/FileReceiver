@@ -47,7 +47,7 @@ app.post('/audio', async (req, res) =>{
             const currentDate = new Date(Date.now());
             console.log(`Archivo ${fileName} subido a las ${currentDate.getHours()}:${currentDate.getMinutes()}`);
 
-            const requestWithAudioPath = {
+            /*const requestWithAudioPath = {
                 path_audio_voice: fileName
             }
             const textFromAudio = await axios.post(`http://${server}:7004/process_voice`, requestWithAudioPath);
@@ -74,8 +74,10 @@ app.post('/audio', async (req, res) =>{
                 } else{
                     console.log(`Archivo ${fileForSending} enviado.`)
                 }
-            });
-
+            });*/
+            res.status(201).json({
+                message: 'sucess'
+            })
         }
     });
 
