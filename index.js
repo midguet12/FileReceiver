@@ -65,7 +65,7 @@ app.post('/audio', async (req, res) =>{
             const options = {
                 root: path.join(__dirname)
             }
-            const fileForSending = `./audios/server/${temporalAudio}`
+            const fileForSending = `./audios/chatbot/${temporalAudio}`
             res.sendFile(fileForSending, options, function(err){
                 if (err) {
                     console.log(err)
