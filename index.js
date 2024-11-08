@@ -50,34 +50,51 @@ app.post('/audio', async (req, res) =>{
             const requestWithAudioPath = {
                 path_audio_voice: `/ecoterra_files/audio/user/${fileName}`
             }
-            const textFromAudio = await axios.post(`http://${server}:7004/process_voice`, requestWithAudioPath);
+            try {
+                const textFromAudio = await axios.post(`http://${server}:7004/process_voice`, requestWithAudioPath);
+                
+                if (textFromAudio != null) {
+                    console.log(`Texto recibido (conversión de audio a texto): ${textFromAudio.data.text}`)
+                    const textQuestion = {
+                        text: textFromAudio.data.text
+                    };
+                    const answerText = await axios.post(`http://${server}:7000/constanza/listens`, textQuestion);
 
-            const textQuestion = {
-                text: textFromAudio.data.text
-            }
-            const answerText = await axios.post(`http://${server}:7000/constanza/listens`, textQuestion);
-        
-            const audioPathRequest = {
-                text: answerText.data.result
-            }
-            const responseAudioPathRequest = await axios.post(`http://${server}:7004/voice_response`, audioPathRequest);
-            
-            const temporalAudio = responseAudioPathRequest.data.result;
-            const options = {
-                root: path.join(__dirname)
-            }
-            const fileForSending = `./audios/chatbot/${temporalAudio}`
-            console.log(fileForSending);
-            res.sendFile(fileForSending, options, function(err){
-                if (err) {
-                    console.log(err)
+                    if (answerText!=null) {
+                        console.log(`Texto recibido (respuesta de chatbot): ${answerText.data.result}`)
+                        const audioPathRequest = {
+                            text: answerText.data.result
+                        }
+                        const responseAudioPathRequest = await axios.post(`http://${server}:7004/voice_response`, audioPathRequest);
+                        console.log(`Nombre de audio a enviar: ${responseAudioPathRequest.data.result}`)
+                        const options = {
+                            root: path.join(__dirname)
+                        }
+                        const fileForSending = `/audios/chatbot/${responseAudioPathRequest.data.result}`;
+                        res.sendFile(fileForSending, options, function(err){
+                            if (err) {
+                                console.log(err)
+                            } else{
+                                console.log(`Archivo ${fileForSending} enviado.`)
+                            }
+                        });
+
+
+                    } else {
+                        console.log("Voice response sent null response.");
+                    }
                 } else{
-                    console.log(`Archivo ${fileForSending} enviado.`)
+                    console.log('Process voice sent null response.')
                 }
-            });
-            res.status(201).json({
-                message: 'sucess'
-            })
+
+                
+                
+                
+                
+                
+            } catch (error) {
+                console.log(error.message)
+            }           
         }
     });
 
